@@ -1,32 +1,28 @@
 use bevy::prelude::*;
 
-use crate::{GameState, GameValues, tile_states::Tile};
+use crate::{GameState, GameValues, tile_states::{Tile, TileState}};
 
 #[derive(EntityEvent, Clone)]
-pub struct LeftClickTileEvent(pub Entity);
+pub struct RevealTileEvent(pub Entity);
 
 #[derive(EntityEvent, Clone)]
-pub struct RightClickTileEvent(pub Entity);
+pub struct FlagTileEvent(pub Entity);
 
 pub fn click () -> impl Fn(On<Pointer<Press>>, Commands, ResMut<GameValues>) {
     move |ev: On<'_, '_, Pointer<Press>>, mut commands, game_values| {
         if game_values.state != GameState::Playing {return}
         match ev.button {
-            PointerButton::Primary => {commands.entity(ev.entity).trigger(LeftClickTileEvent);},
-            PointerButton::Secondary => {commands.entity(ev.entity).trigger(RightClickTileEvent);},
+            PointerButton::Primary => {commands.entity(ev.entity).trigger(RevealTileEvent);},
+            PointerButton::Secondary => {commands.entity(ev.entity).trigger(FlagTileEvent);},
             _ => return,
         }
     }
 }
 
-pub fn left_click () -> impl Fn(On<LeftClickTileEvent>, Commands, Query<(&mut Tile, &mut MeshMaterial2d<ColorMaterial>, &Children, &mut Transform)>, ResMut<Assets<ColorMaterial>>, ResMut<GameValues>) {
-    move |ev: On<'_, '_, LeftClickTileEvent>, mut commands, mut info, mut color_materials, mut game_values| {   
-        let Ok((mut tile, material, children, mut transform)) = info.get_mut(ev.event_target()) else {
-            return;
-        };
-        let Some(mut color) = color_materials.get_mut(&material.0) else {
-            return;
-        };
+pub fn reveal () -> impl Fn(On<RevealTileEvent>, Commands, Query<(&mut Tile, &mut MeshMaterial2d<ColorMaterial>, &Children, &mut Transform)>, ResMut<Assets<ColorMaterial>>, ResMut<GameValues>) {
+    move |ev: On<'_, '_, RevealTileEvent>, mut commands, mut info, mut color_materials, mut game_values| {
+        let Ok((mut tile, material, children, mut transform)) = info.get_mut(ev.event_target()) else {return};
+        let Some(mut color) = color_materials.get_mut(&material.0) else {return};
         let surrounding_mines = tile.surrounding_mines;
         if !tile.tile.is_revealed() && !tile.tile.is_flagged() {
             match game_values.state {
@@ -48,8 +44,7 @@ pub fn left_click () -> impl Fn(On<LeftClickTileEvent>, Commands, Query<(&mut Ti
                         if x < 0 || y < 0 || (dx == 0 && dy == 0) {continue}
                         let Some(row) = game_values.tile_entities.get(x as usize) else {continue};
                         let Some(spread_tile) = row.get(y as usize) else {continue};
-                        let entity = *spread_tile;
-                        commands.entity(entity).trigger(LeftClickTileEvent);
+                        commands.entity(*spread_tile).trigger(RevealTileEvent);
                     }
                 }
             }
@@ -58,8 +53,8 @@ pub fn left_click () -> impl Fn(On<LeftClickTileEvent>, Commands, Query<(&mut Ti
     }
 }
 
-pub fn right_click () -> impl Fn(On<RightClickTileEvent>, Commands, Query<(&mut Tile, &Children)>) {
-    move |ev: On<'_, '_, RightClickTileEvent>, mut commands, mut info| {   
+pub fn flag () -> impl Fn(On<FlagTileEvent>, Commands, Query<(&mut Tile, &Children)>) {
+    move |ev: On<'_, '_, FlagTileEvent>, mut commands, mut info| {   
         let Ok((mut tile, children)) = info.get_mut(ev.event_target()) else {
             return;
         };
@@ -68,5 +63,21 @@ pub fn right_click () -> impl Fn(On<RightClickTileEvent>, Commands, Query<(&mut 
             true => Visibility::Visible,
             false => Visibility::Hidden
         });
+    }
+}
+
+pub fn hover () -> impl Fn(On<Pointer<Enter>>, Query<(&mut Tile, &Children)>, Commands) {
+    move |ev: On<'_, '_, Pointer<Enter>>, mut query, mut commands| {
+        let Ok((tile, children)) = query.get_mut(ev.event_target()) else {return};
+        if !tile.tile.is_revealed() || matches!(tile.tile, TileState::RevealedNumber(_)) {
+            commands.entity(*children.get(3).unwrap()).insert(Visibility::Visible);
+        }
+    }
+}
+
+pub fn unhover () -> impl Fn(On<Pointer<Leave>>, Query<&Children>, Commands) {
+    move |ev: On<'_, '_, Pointer<Leave>>, mut query, mut commands| {
+        let Ok(children) = query.get_mut(ev.event_target()) else {return};
+        commands.entity(*children.get(3).unwrap()).insert(Visibility::Hidden);
     }
 }

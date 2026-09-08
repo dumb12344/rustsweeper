@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::constants::*;
-use crate::tile_states::Tile;
-use crate::{GameValues, click_handling::{click, left_click, right_click}, tile_states::TileState};
+use crate::{constants::*, pointer_handling::*, tile_states::{Tile, TileState}, GameValues};
 
 pub fn initialize_tiles (tiles: Vec<Vec<TileState>>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>, mut game_values: ResMut<GameValues>) {
     tiles.iter().enumerate().for_each(|(i, tile_row)| {
@@ -27,8 +25,9 @@ pub fn initialize_tiles (tiles: Vec<Vec<TileState>>, mut commands: Commands, mut
                     }
                 }
             }
-            let absolute_x = (i as f32) * game_values.tile_size as f32 - (game_values.tile_size * SIZE_X) as f32 / 2.0 + game_values.tile_size as f32 / 2.0;
-            let absolute_y = (j as f32) * game_values.tile_size as f32 - (game_values.tile_size * SIZE_Y) as f32 / 2.0 + game_values.tile_size as f32 / 2.0;
+            let tile_size_float = game_values.tile_size as f32;
+            let absolute_x = (i as f32) * tile_size_float - (game_values.tile_size * SIZE_X) as f32 / 2.0 + tile_size_float / 2.0;
+            let absolute_y = (j as f32) * tile_size_float - (game_values.tile_size * SIZE_Y) as f32 / 2.0 + tile_size_float / 2.0;
             let tile = Tile {
                 x: i,
                 y: j,
@@ -36,49 +35,49 @@ pub fn initialize_tiles (tiles: Vec<Vec<TileState>>, mut commands: Commands, mut
                 surrounding_mines
             };
             let entity = commands.spawn((
-                Mesh2d(meshes.add(Rectangle::new(game_values.tile_size as f32, game_values.tile_size as f32))),
+                Mesh2d(meshes.add(Rectangle::new(tile_size_float, tile_size_float))),
                 MeshMaterial2d(materials.add(tile.get_color())),
                 Transform::from_xyz(
                     absolute_x,
                     absolute_y,
                     0.0
                 ),
-                Pickable::default(),
                 tile
             ))
             .with_children(|parent| {
                 parent.spawn((
                     Sprite::from_image(asset_server.load("flag_icon.png")),
-                    Transform::from_xyz(0.0, 0.0, 1.0).with_scale(Vec3::new(game_values.tile_size as f32 / 128.0, game_values.tile_size as f32 / 128.0, 1.0)),
+                    Transform::from_xyz(0.0, 0.0, 1.0).with_scale(Vec3::new(tile_size_float / 128.0, tile_size_float / 128.0, 1.0)),
                     Visibility::Hidden
                 ));
                 parent.spawn((
                     Text2d::new(surrounding_mines.to_string()),
-                    Transform::from_xyz(
-                        0.0,
-                        0.0,
-                        1.0,
-                    ),
+                    Transform::from_xyz(0.0, 0.0, 1.0),
                     TextFont {
-                        font_size: FontSize::Px(33.0 / 50.0 * game_values.tile_size as f32),
+                        font_size: FontSize::Px(45.0 / 50.0 * tile_size_float),
+                        font: asset_server.load("google_sans.otf").into(),
                         ..Default::default()
                     },
                     TextColor(Color::from(Srgba::hex(NUMBER_COLORS.get(surrounding_mines as usize).unwrap()).unwrap())),
                     Visibility::Hidden
                 ));
                 parent.spawn((
-                    Mesh2d(meshes.add(Rectangle::new((1.0 + 1.0/7.5) * game_values.tile_size as f32, (1.0 + 1.0/7.5) * game_values.tile_size as f32))),
+                    Mesh2d(meshes.add(Rectangle::new((1.0 + 1.0/7.5) * tile_size_float, (1.0 + 1.0/7.5) * tile_size_float))),
                     MeshMaterial2d(materials.add(Color::from(Srgba::hex("#87af3a").unwrap()))),
-                    Transform::from_xyz(
-                        0.0,
-                        0.0,
-                        -0.5
-                    )
+                    Transform::from_xyz(0.0, 0.0, -0.5)
+                ));
+                parent.spawn((
+                    Mesh2d(meshes.add(Rectangle::new(tile_size_float, tile_size_float))),
+                    MeshMaterial2d(materials.add(Color::srgba(1.0, 1.0, 1.0, 0.2))),
+                    Transform::from_xyz(0.0, 0.0, 0.5),
+                    Visibility::Hidden
                 ));
             })
             .observe(click())
-            .observe(left_click())
-            .observe(right_click())
+            .observe(reveal())
+            .observe(flag())
+            .observe(hover())
+            .observe(unhover())
             .id();
             game_values.tile_entities.get_mut(i).unwrap().push(entity);
         })

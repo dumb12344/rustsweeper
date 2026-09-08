@@ -11,29 +11,22 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn get_color (&self) -> Color {
+    fn get_color_hex (&self) -> &str {
+        // Use xor for checker pattern
         let alt_color = (self.x % 2 == 0) ^ (self.y % 2 == 0);
         match self.tile {
             TileState::HiddenBlank | TileState::HiddenMine | TileState::FlaggedBlank | TileState::FlaggedMine => {
-                if alt_color {
-                    Color::from(Srgba::hex("#a2d149").unwrap())
-                }
-                else {
-                    Color::from(Srgba::hex("#aad751").unwrap())
-                }
+                if alt_color {"#a2d149"} else {"#aad751"}
             }
             TileState::RevealedBlank | TileState::RevealedNumber(_) => {
-                if alt_color {
-                    Color::from(Srgba::hex("#d7b899").unwrap())
-                }
-                else {
-                    Color::from(Srgba::hex("#e5c29f").unwrap())
-                }
+                if alt_color {"#d7b899"} else {"#e5c29f"}
             }
-            TileState::RevealedMine => {
-                Color::from(Srgba::hex("#ff0000").unwrap())
-            }
+            TileState::RevealedMine => {"#ff0000"}
         }
+    }
+
+    pub fn get_color (&self) -> Color {
+        if let Ok(srgba) = Srgba::hex(self.get_color_hex()) {Color::from(srgba)} else {Color::WHITE}
     }
 }
 
@@ -67,24 +60,28 @@ impl TileState {
             _ => GameState::Playing
         }
     }
+
     pub fn is_revealed (self) -> bool {
         match self {
             TileState::RevealedMine | TileState::RevealedBlank | TileState::RevealedNumber(_) => true,
             _ => false
         }
     }
+
     pub fn is_mine (self) -> bool {
         match self {
             TileState::HiddenMine | TileState::FlaggedMine | TileState::RevealedMine => true,
             _ => false
         }
     }
+
     pub fn is_flagged (self) -> bool {
         match self {
             TileState::FlaggedMine | TileState::FlaggedBlank => true,
             _ => false
         }
     }
+    
     pub fn toggle_flag (&mut self) {
         *self = match self {
             TileState::HiddenMine => TileState::FlaggedMine,

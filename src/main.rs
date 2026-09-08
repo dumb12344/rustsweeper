@@ -5,12 +5,12 @@ use bevy::sprite::Text2dShadow;
 #[cfg(feature = "embed-assets")]
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
-use crate::click_handling::LeftClickTileEvent;
+use crate::pointer_handling::RevealTileEvent;
 use crate::constants::*;
 use crate::tile_states::Tile;
 use crate::init::setup;
 mod tile_states;
-mod click_handling;
+mod pointer_handling;
 mod init;
 mod constants;
 
@@ -18,14 +18,15 @@ fn main() {
     let mut app = App::new();
     #[cfg(feature = "embed-assets")]
     app.add_plugins(EmbeddedAssetPlugin {mode: PluginMode::ReplaceDefault});
-    app.add_plugins((DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Rustsweeper".to_string(),
-                mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
-                ..Default::default()
-            }),
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Rustsweeper".to_string(),
+            mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
             ..Default::default()
-        }), MeshPickingPlugin));
+        }),
+        ..Default::default()
+    }));
+    app.add_plugins(MeshPickingPlugin);
     app.init_resource::<GameValues>();
     app.add_systems(Startup, set_width);
     app.add_systems(Startup, setup);
@@ -78,7 +79,6 @@ fn set_width (windows: Query<&mut Window>, mut game_values: ResMut<GameValues>) 
         cmp::Ordering::Less => {window.width() / SIZE_X as f32},
         cmp::Ordering::Equal => {window.width() / max(SIZE_X, SIZE_Y) as f32},
     } as u32);
-    println!("{}", game_values.tile_size);
 }
 
 fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&Tile>) {
@@ -86,7 +86,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
     //     game_values.tile_entities.iter_mut().for_each(|row| {
     //         row.iter_mut().for_each(|tile_entity| {
     //             if !tile_query.get(*tile_entity).unwrap().tile.is_mine() {
-    //                 commands.entity(*tile_entity).trigger(LeftClickTileEvent);
+    //                 commands.entity(*tile_entity).trigger(RevealTileEvent);
     //             }
     //         });
     //     });
@@ -106,7 +106,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
         game_values.tile_entities.iter_mut().for_each(|row| {
             row.iter_mut().for_each(|tile_entity| {
                 if tile_query.get(*tile_entity).unwrap().tile.is_mine() {
-                    commands.entity(*tile_entity).trigger(LeftClickTileEvent);
+                    commands.entity(*tile_entity).trigger(RevealTileEvent);
                 }
             });
         });
