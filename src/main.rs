@@ -7,12 +7,14 @@ use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 use crate::pointer_handling::RevealTileEvent;
 use crate::constants::*;
+use crate::reset::ResetTileEvent;
 use crate::tile_states::Tile;
-use crate::init::setup;
+use crate::init::{setup};
 mod tile_states;
 mod pointer_handling;
 mod init;
 mod constants;
+mod reset;
 
 fn main() {
     let mut app = App::new();
@@ -81,54 +83,62 @@ fn set_width (windows: Query<&mut Window>, mut game_values: ResMut<GameValues>) 
     } as u32);
 }
 
-fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&Tile>) {
-    // if game_values.state == GameState::Playing {
-    //     game_values.tile_entities.iter_mut().for_each(|row| {
-    //         row.iter_mut().for_each(|tile_entity| {
-    //             if !tile_query.get(*tile_entity).unwrap().tile.is_mine() {
-    //                 commands.entity(*tile_entity).trigger(RevealTileEvent);
-    //             }
-    //         });
-    //     });
-    // }
-    if game_values.state == GameState::Lose {
-        commands.spawn((
-            Text2d::new("YOU LOSE"),
-            Transform::from_xyz(0.0,0.0, 3.0),
-            TextFont {
-                font_size: FontSize::Px(40.0 / 50.0 * game_values.tile_size as f32),
-                weight: FontWeight(30),
-                ..Default::default()
-            },
-            TextColor(Color::from(Srgba::hex("#ff0000").unwrap())),
-            Text2dShadow::default()
-        ));
-        game_values.tile_entities.iter_mut().for_each(|row| {
-            row.iter_mut().for_each(|tile_entity| {
-                if tile_query.get(*tile_entity).unwrap().tile.is_mine() {
-                    commands.entity(*tile_entity).trigger(RevealTileEvent);
+fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&Tile>, button: Res<ButtonInput<KeyCode>>) {
+    if button.just_pressed(KeyCode::KeyM) {
+        game_values.tile_entities.iter_mut().enumerate().for_each(|(i, row)| {
+            row.iter_mut().enumerate().for_each(|(j, tile_entity)| {
+                if !tile_query.get(*tile_entity).unwrap().tile.is_mine() {
+                    commands.delayed().secs((i as u32 + SIZE_X * j as u32) as f32 / (SIZE_X * SIZE_Y) as f32).entity(*tile_entity).trigger(RevealTileEvent);
                 }
             });
         });
-        game_values.state = GameState::End;
-        return;
     }
-    if game_values.remaining_blanks <= 0 {
-        game_values.state = GameState::Win;
+    if button.just_pressed(KeyCode::KeyR) {
+        game_values.state = GameState::Playing;
+        game_values.remaining_blanks = (SIZE_X as i32 * SIZE_Y as i32) - MINE_COUNT as i32;
+        game_values.tile_entities.iter_mut().for_each(|row| {
+            row.iter_mut().for_each(|tile_entity| {
+                commands.entity(*tile_entity).trigger(ResetTileEvent);
+            });
+        });
     }
-    if game_values.state == GameState::Win {
-        commands.spawn((
-            Text2d::new("YOU WIN!!"),
-            Transform::from_xyz(0.0,0.0, 3.0),
-            TextFont {
-                font_size: FontSize::Px(40.0 / 50.0 * game_values.tile_size as f32),
-                weight: FontWeight(30),
-                ..Default::default()
-            },
-            TextColor(Color::from(Srgba::hex("#9c5300").unwrap())),
-            Text2dShadow::default()
-        ));
-        game_values.state = GameState::End;
-        return;
+    game_values.state = match game_values.state {
+        GameState::Lose => {
+            commands.spawn((
+                Text2d::new("YOU LOSE"),
+                Transform::from_xyz(0.0,0.0, 3.0),
+                TextFont {
+                    font_size: FontSize::Px(40.0 / 50.0 * game_values.tile_size as f32),
+                    weight: FontWeight(30),
+                    ..Default::default()
+                },
+                TextColor(Color::from(Srgba::hex("#ff0000").unwrap())),
+                Text2dShadow::default()
+            ));
+            game_values.tile_entities.iter_mut().for_each(|row| {
+                row.iter_mut().for_each(|tile_entity| {
+                    if tile_query.get(*tile_entity).unwrap().tile.is_mine() {
+                        commands.entity(*tile_entity).trigger(RevealTileEvent);
+                    }
+                });
+            });
+            GameState::End
+        },
+        GameState::Playing => if game_values.remaining_blanks <= 0 {GameState::Win} else {GameState::Playing},
+        GameState::Win => {
+            commands.spawn((
+                Text2d::new("YOU WIN!!"),
+                Transform::from_xyz(0.0,0.0, 3.0),
+                TextFont {
+                    font_size: FontSize::Px(40.0 / 50.0 * game_values.tile_size as f32),
+                    weight: FontWeight(30),
+                    ..Default::default()
+                },
+                TextColor(Color::from(Srgba::hex("#9c5300").unwrap())),
+                Text2dShadow::default()
+            ));
+            GameState::End
+        },
+        GameState::End => GameState::End
     }
 }

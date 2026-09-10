@@ -55,9 +55,7 @@ pub fn reveal () -> impl Fn(On<RevealTileEvent>, Commands, Query<(&mut Tile, &mu
 
 pub fn flag () -> impl Fn(On<FlagTileEvent>, Commands, Query<(&mut Tile, &Children)>) {
     move |ev: On<'_, '_, FlagTileEvent>, mut commands, mut info| {   
-        let Ok((mut tile, children)) = info.get_mut(ev.event_target()) else {
-            return;
-        };
+        let Ok((mut tile, children)) = info.get_mut(ev.event_target()) else {return};
         tile.tile.toggle_flag();
         commands.entity(*children.get(0).unwrap()).insert(match tile.tile.is_flagged() {
             true => Visibility::Visible,
