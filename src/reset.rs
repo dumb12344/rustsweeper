@@ -38,6 +38,7 @@ pub fn reset_game (_: On<ResetGameEvent>, mut commands: Commands, mut game_value
     generate_surrounding_mines(&mut game_values.tile_entities, &mut tile_query);
     if let Some(end_screen_entity) = game_values.end_screen_entity {
         commands.entity(end_screen_entity).despawn();
+        game_values.end_screen_entity = None;
     };
 }
 
