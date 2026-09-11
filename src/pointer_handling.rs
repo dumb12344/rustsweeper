@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{GameState, GameValues, tile_states::{Tile, TileState}};
+use crate::{GameState, GameValues, tile_states::{Tile, TileState}, ResetGameEvent};
 
 #[derive(EntityEvent, Clone)]
 pub struct RevealTileEvent(pub Entity);
@@ -10,7 +10,10 @@ pub struct FlagTileEvent(pub Entity);
 
 pub fn click () -> impl Fn(On<Pointer<Press>>, Commands, ResMut<GameValues>) {
     move |ev: On<'_, '_, Pointer<Press>>, mut commands, game_values| {
-        if game_values.state != GameState::Playing {return}
+        if game_values.state != GameState::Playing {
+            commands.trigger(ResetGameEvent{});
+            return
+        }
         match ev.button {
             PointerButton::Primary => {commands.entity(ev.entity).trigger(RevealTileEvent);},
             PointerButton::Secondary => {commands.entity(ev.entity).trigger(FlagTileEvent);},

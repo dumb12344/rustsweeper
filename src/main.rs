@@ -7,7 +7,7 @@ use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
 use crate::pointer_handling::RevealTileEvent;
 use crate::constants::*;
-use crate::reset::ResetTileEvent;
+use crate::reset::ResetGameEvent;
 use crate::tile_states::Tile;
 use crate::init::{setup};
 mod tile_states;
@@ -16,7 +16,7 @@ mod init;
 mod constants;
 mod reset;
 
-fn main() {
+fn main () {
     let mut app = App::new();
     #[cfg(feature = "embed-assets")]
     app.add_plugins(EmbeddedAssetPlugin {mode: PluginMode::ReplaceDefault});
@@ -33,6 +33,7 @@ fn main() {
     app.add_systems(Startup, set_width);
     app.add_systems(Startup, setup);
     app.add_systems(Update, win_check);
+    app.add_systems(Update, manage_keys);
     app.run();
 }
 
@@ -50,10 +51,11 @@ pub struct GameValues {
     pub state: GameState,
     pub remaining_blanks: i32,
     pub tile_entities: Vec<Vec<Entity>>,
-    pub tile_size: u32
+    pub tile_size: u32,
+    pub end_screen_entity: Option<Entity>
 }
 
-fn max(a: u32, b: u32) -> u32 {
+fn max (a: u32, b: u32) -> u32 {
     if a > b {
         a
     }
@@ -62,7 +64,7 @@ fn max(a: u32, b: u32) -> u32 {
     }
 }
 
-fn compare(a: f32, b: f32) -> cmp::Ordering {
+fn compare (a: f32, b: f32) -> cmp::Ordering {
     if a > b {
         cmp::Ordering::Greater
     }
@@ -83,7 +85,7 @@ fn set_width (windows: Query<&mut Window>, mut game_values: ResMut<GameValues>) 
     } as u32);
 }
 
-fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&Tile>, button: Res<ButtonInput<KeyCode>>) {
+fn manage_keys (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&mut Tile>, button: Res<ButtonInput<KeyCode>>) {
     if button.just_pressed(KeyCode::KeyM) {
         game_values.tile_entities.iter_mut().enumerate().for_each(|(i, row)| {
             row.iter_mut().enumerate().for_each(|(j, tile_entity)| {
@@ -94,17 +96,14 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
         });
     }
     if button.just_pressed(KeyCode::KeyR) {
-        game_values.state = GameState::Playing;
-        game_values.remaining_blanks = (SIZE_X as i32 * SIZE_Y as i32) - MINE_COUNT as i32;
-        game_values.tile_entities.iter_mut().for_each(|row| {
-            row.iter_mut().for_each(|tile_entity| {
-                commands.entity(*tile_entity).trigger(ResetTileEvent);
-            });
-        });
+        commands.trigger(ResetGameEvent{});
     }
+}
+
+fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&mut Tile>) {
     game_values.state = match game_values.state {
         GameState::Lose => {
-            commands.spawn((
+            game_values.end_screen_entity = Some(commands.spawn((
                 Text2d::new("YOU LOSE"),
                 Transform::from_xyz(0.0,0.0, 3.0),
                 TextFont {
@@ -114,7 +113,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
                 },
                 TextColor(Color::from(Srgba::hex("#ff0000").unwrap())),
                 Text2dShadow::default()
-            ));
+            )).id());
             game_values.tile_entities.iter_mut().for_each(|row| {
                 row.iter_mut().for_each(|tile_entity| {
                     if tile_query.get(*tile_entity).unwrap().tile.is_mine() {
@@ -126,7 +125,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
         },
         GameState::Playing => if game_values.remaining_blanks <= 0 {GameState::Win} else {GameState::Playing},
         GameState::Win => {
-            commands.spawn((
+            game_values.end_screen_entity = Some(commands.spawn((
                 Text2d::new("YOU WIN!!"),
                 Transform::from_xyz(0.0,0.0, 3.0),
                 TextFont {
@@ -136,7 +135,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
                 },
                 TextColor(Color::from(Srgba::hex("#9c5300").unwrap())),
                 Text2dShadow::default()
-            ));
+            )).id());
             GameState::End
         },
         GameState::End => GameState::End

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::{GameValues, constants::*, pointer_handling::*, reset::{ResetTileEvent, reset}, tile_states::{Tile, TileState}};
+use crate::{GameValues, constants::*, pointer_handling::*, reset::{ResetTileEvent, reset, reset_game}, tile_states::{Tile, TileState}};
 
 pub fn initialize_tile_entities (tiles: Vec<Vec<TileState>>, commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>, game_values: &mut ResMut<GameValues>) {
     tiles.iter().enumerate().for_each(|(i, tile_row)| {
@@ -78,7 +78,20 @@ pub fn initialize_tile_entities (tiles: Vec<Vec<TileState>>, commands: &mut Comm
     });
 }
 
-fn generate_mines_from_tilestate (tiles: &mut Vec<Vec<TileState>>) {
+pub fn setup (mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>, mut game_values: ResMut<GameValues>) {
+    game_values.remaining_blanks = (SIZE_X as i32 * SIZE_Y as i32) - MINE_COUNT as i32;
+    game_values.end_screen_entity = None;
+    commands.spawn(Camera2d);
+    commands.add_observer(reset_game);
+    let mut tiles = Vec::new();
+    for _ in 0..SIZE_X {
+        let mut tile_row = Vec::new();
+        for _ in 0..SIZE_Y {
+            tile_row.push(TileState::HiddenBlank)
+        }
+        game_values.tile_entities.push(Vec::new());
+        tiles.push(tile_row);
+    }
     let mut i = 0;
     while i < MINE_COUNT as i32 {
         let rand_x = rand::thread_rng().gen_range(0..SIZE_X) as usize;
@@ -90,67 +103,5 @@ fn generate_mines_from_tilestate (tiles: &mut Vec<Vec<TileState>>) {
             i += 1;
         }
     }
-}
-
-pub fn generate_mines (tiles: &mut Vec<Vec<Entity>>, mut tile_query: Query<&mut Tile>) {
-    {
-        let mut i = 0;
-        while i < MINE_COUNT as i32 {
-            let rand_x = rand::thread_rng().gen_range(0..SIZE_X) as usize;
-            let rand_y = rand::thread_rng().gen_range(0..SIZE_Y) as usize;
-            // Don't place mine in top left corner
-            let Ok(mut tile) = tile_query.get_mut(tiles[rand_x][rand_y]) else {continue};
-            if tile.tile == TileState::HiddenBlank && !(rand_x <= 1 && rand_y >= SIZE_Y as usize - 2) {
-                tile.tile = TileState::HiddenMine;
-                i += 1;
-            }
-        }
-    }
-}
-
-pub fn setup_surrounding_mines (tiles: &mut Vec<Vec<Entity>>, mut tile_query: Query<&mut Tile>) {
-    tiles.iter().enumerate().for_each(|(i, tile_row)| {
-        tile_row.iter().enumerate().for_each(|(j, _)| {
-            for dx in -1isize..=1 {
-                for dy in -1isize..=1 {
-                    let x = i as isize + dx;
-                    let y = j as isize + dy;
-                    if x < 0 || y < 0 {continue};
-                    let Some(row) = tiles.get(x as usize) else {continue};
-                    let Some(loop_tile) = row.get(y as usize) else {continue};
-                    let Ok(mut tile_entity) = tile_query.get_mut(*loop_tile) else {continue};
-                    if tile_entity.tile.is_mine() {tile_entity.surrounding_mines += 1};
-                }
-            }
-        });
-    });
-}
-
-pub fn setup (mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>, mut game_values: ResMut<GameValues>) {
-    game_values.remaining_blanks = (SIZE_X as i32 * SIZE_Y as i32) - MINE_COUNT as i32;
-    commands.spawn(Camera2d);
-    let mut tiles = Vec::new();
-    for _ in 0..SIZE_X {
-        let mut tile_row = Vec::new();
-        for _ in 0..SIZE_Y {
-            tile_row.push(TileState::HiddenBlank)
-        }
-        game_values.tile_entities.push(Vec::new());
-        tiles.push(tile_row);
-    }
-    generate_mines_from_tilestate(&mut tiles);
     initialize_tile_entities(tiles, &mut commands, meshes, materials, asset_server, &mut game_values);
 }
-// pub fn setup_mines (mut game_values: ResMut<GameValues>, tile_query: Query<&mut Tile>) {
-//     generate_mines(&mut game_values.tile_entities, tile_query);
-// }
-// pub fn setup_mines2 (game_values: ResMut<GameValues>, mut commands: Commands) {
-//     game_values.tile_entities.iter().for_each(|tile_row| {
-//         tile_row.iter().for_each(|tile| {
-//             commands.entity(*tile).trigger(ResetTileEvent);
-//         });
-//     });
-// }
-// pub fn setup_mines3 (mut game_values: ResMut<GameValues>, tile_query: Query<&mut Tile>) {
-//     setup_surrounding_mines(&mut game_values.tile_entities, tile_query);
-// }
