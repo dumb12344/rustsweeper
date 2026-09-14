@@ -82,7 +82,7 @@ fn set_width (windows: Query<&mut Window>, mut game_values: ResMut<GameValues>) 
     } as u32);
 }
 
-fn manage_keys (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&mut Tile>, button: Res<ButtonInput<KeyCode>>) {
+fn manage_keys (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&mut Tile>, button: Res<ButtonInput<KeyCode>>, mut app_exit: MessageWriter<AppExit>) {
     if button.just_pressed(KeyCode::KeyM) {
         game_values.tile_entities.iter_mut().enumerate().for_each(|(i, row)| {
             row.iter_mut().enumerate().for_each(|(j, tile_entity)| {
@@ -92,8 +92,13 @@ fn manage_keys (mut game_values: ResMut<GameValues>, mut commands: Commands, til
             });
         });
     }
+
     if button.just_pressed(KeyCode::KeyR) {
         commands.trigger(ResetGameEvent{});
+    }
+    
+    if button.just_pressed(KeyCode::KeyQ) {
+        app_exit.write(AppExit::Success);
     }
 }
 
