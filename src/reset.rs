@@ -10,13 +10,14 @@ pub struct ResetTileEvent(pub Entity);
 pub struct ResetGameEvent();
 
 pub fn reset () -> impl Fn(On<ResetTileEvent>, Commands, Query<(&mut Tile, &mut MeshMaterial2d<ColorMaterial>, &Children, &mut Transform)>, ResMut<Assets<ColorMaterial>>) {
-    move |ev: On<'_, '_, ResetTileEvent>, mut commands, mut info, mut color_materials| {   
+    move |ev: On<'_, '_, ResetTileEvent>, mut commands, mut info, mut color_materials| {
         let Ok((tile, material, children, mut transform)) = info.get_mut(ev.event_target()) else {return};
         let Some(mut color) = color_materials.get_mut(&material.0) else {return};
-        let mut flag_entity = commands.entity(*children.get(1).unwrap());
-        flag_entity.insert(Text2d::new(tile.surrounding_mines.to_string()));
-        flag_entity.insert(TextColor(Color::from(Srgba::hex(NUMBER_COLORS.get(tile.surrounding_mines as usize).unwrap()).unwrap())));
-
+        let mut number_entity = commands.entity(*children.get(1).unwrap());
+        number_entity.insert(Text2d::new(tile.surrounding_mines.to_string()));
+        number_entity.insert(TextColor(Color::from(Srgba::hex(NUMBER_COLORS.get(tile.surrounding_mines as usize).unwrap()).unwrap())));
+        
+        // Flag, number, and hover effect
         [0, 1, 3].iter().for_each(|i| {
             commands.entity(*children.get(*i).unwrap()).insert(Visibility::Hidden);
         });
@@ -26,7 +27,7 @@ pub fn reset () -> impl Fn(On<ResetTileEvent>, Commands, Query<(&mut Tile, &mut 
 }
 
 pub fn reset_game (_: On<ResetGameEvent>, mut commands: Commands, mut game_values: ResMut<GameValues>, mut tile_query: Query<&mut Tile>){
-    game_values.state = GameState::Playing;
+    game_values.state = GameState::Initializing;
     game_values.remaining_blanks = (SIZE_X as i32 * SIZE_Y as i32) - MINE_COUNT as i32;
     game_values.tile_entities.iter_mut().for_each(|row| {
         row.iter_mut().for_each(|tile_entity| {
@@ -40,6 +41,7 @@ pub fn reset_game (_: On<ResetGameEvent>, mut commands: Commands, mut game_value
         commands.entity(end_screen_entity).despawn();
         game_values.end_screen_entity = None;
     };
+    game_values.state = GameState::Playing;
 }
 
 pub fn generate_surrounding_mines (tiles: &mut Vec<Vec<Entity>>, tile_query: &mut Query<&mut Tile>) {

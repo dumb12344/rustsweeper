@@ -5,11 +5,7 @@ use bevy::sprite::Text2dShadow;
 #[cfg(feature = "embed-assets")]
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
-use crate::pointer_handling::RevealTileEvent;
-use crate::constants::*;
-use crate::reset::ResetGameEvent;
-use crate::tile_states::Tile;
-use crate::init::{setup};
+use crate::{pointer_handling::RevealTileEvent, constants::*, reset::ResetGameEvent, tile_states::Tile, init::setup};
 mod tile_states;
 mod pointer_handling;
 mod init;
@@ -40,6 +36,7 @@ fn main () {
 #[derive(Default, PartialEq)]
 pub enum GameState {
     #[default]
+    Initializing,
     Playing,
     Win,
     Lose,
@@ -138,6 +135,7 @@ fn win_check (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_
             )).id());
             GameState::End
         },
-        GameState::End => GameState::End
+        GameState::End => GameState::End,
+        GameState::Initializing => GameState::Initializing,
     }
 }

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::{GameValues, constants::*, pointer_handling::*, reset::{ResetTileEvent, reset, reset_game}, tile_states::{Tile, TileState}};
+use crate::{GameState, GameValues, constants::*, pointer_handling::*, reset::{ResetTileEvent, reset, reset_game}, tile_states::{Tile, TileState}};
 
 pub fn initialize_tile_entities (tiles: Vec<Vec<TileState>>, commands: &mut Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>, game_values: &mut ResMut<GameValues>) {
     tiles.iter().enumerate().for_each(|(i, tile_row)| {
@@ -104,4 +104,5 @@ pub fn setup (mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: R
         }
     }
     initialize_tile_entities(tiles, &mut commands, meshes, materials, asset_server, &mut game_values);
+    game_values.state = GameState::Playing;
 }

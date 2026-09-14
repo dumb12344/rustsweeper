@@ -10,6 +10,7 @@ pub struct FlagTileEvent(pub Entity);
 
 pub fn click () -> impl Fn(On<Pointer<Press>>, Commands, ResMut<GameValues>) {
     move |ev: On<'_, '_, Pointer<Press>>, mut commands, game_values| {
+        if game_values.state == GameState::Initializing {return};
         if game_values.state != GameState::Playing {
             commands.trigger(ResetGameEvent{});
             return
@@ -24,6 +25,7 @@ pub fn click () -> impl Fn(On<Pointer<Press>>, Commands, ResMut<GameValues>) {
 
 pub fn reveal () -> impl Fn(On<RevealTileEvent>, Commands, Query<(&mut Tile, &mut MeshMaterial2d<ColorMaterial>, &Children, &mut Transform)>, ResMut<Assets<ColorMaterial>>, ResMut<GameValues>) {
     move |ev: On<'_, '_, RevealTileEvent>, mut commands, mut info, mut color_materials, mut game_values| {
+        if game_values.state == GameState::Initializing {return};
         let Ok((mut tile, material, children, mut transform)) = info.get_mut(ev.event_target()) else {return};
         let Some(mut color) = color_materials.get_mut(&material.0) else {return};
         let surrounding_mines = tile.surrounding_mines;
