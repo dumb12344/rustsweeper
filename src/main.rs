@@ -2,6 +2,7 @@ use std::cmp;
 
 use bevy::prelude::*;
 use bevy::sprite::Text2dShadow;
+use bevy::window::WindowMode;
 #[cfg(feature = "embed-assets")]
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 
@@ -18,8 +19,9 @@ fn main () {
     app.add_plugins(EmbeddedAssetPlugin {mode: PluginMode::ReplaceDefault});
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
+            canvas: Some("#game-canvas".to_string()),
             title: "Rustsweeper".to_string(),
-            mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
+            mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
             ..Default::default()
         }),
         ..Default::default()
@@ -48,7 +50,7 @@ pub struct GameValues {
     pub state: GameState,
     pub remaining_blanks: i32,
     pub tile_entities: Vec<Vec<Entity>>,
-    pub tile_size: u32,
+    pub tile_size: f32,
     pub end_screen_entity: Option<Entity>
 }
 
@@ -74,12 +76,15 @@ fn compare (a: f32, b: f32) -> cmp::Ordering {
 }
 
 fn set_width (windows: Query<&mut Window>, mut game_values: ResMut<GameValues>) {
-    let Ok(window) = windows.single() else {game_values.tile_size = 50;return};
-    game_values.tile_size = (match compare(window.width(), window.height()) {
+    let Ok(window) = windows.single() else {
+        game_values.tile_size = 50.0;
+        return;
+    };
+    game_values.tile_size = match compare(window.width(), window.height()) {
         cmp::Ordering::Greater => {window.height() / SIZE_Y as f32}
         cmp::Ordering::Less => {window.width() / SIZE_X as f32},
         cmp::Ordering::Equal => {window.width() / max(SIZE_X, SIZE_Y) as f32},
-    } as u32);
+    };
 }
 
 fn manage_keys (mut game_values: ResMut<GameValues>, mut commands: Commands, tile_query: Query<&mut Tile>, button: Res<ButtonInput<KeyCode>>, mut app_exit: MessageWriter<AppExit>) {

@@ -1,7 +1,15 @@
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" onclick="idk()">
   <head>
     <meta charset="UTF-8" />
     <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
       body {
         background: linear-gradient(
           135deg,
@@ -14,16 +22,41 @@
         ) repeat;
         background-size: 20px 20px;
       }
-      canvas {
-        width: 100%;
-        height: 100%;
+      #game-canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
         background-color: white;
+      }
+      button {
+        width: 500px;
+        height: 100px;
+        position: fixed;
+        font-size: 40px;
+        left: calc(50% - 250px);
+        top: calc(50% - 50px);
       }
     </style>
     <title>Rustsweeper</title>
   </head>
-  <script type="module">
-    import init from './wasm.js'
-    init()
+  <body>
+    <button>Click to start game</button>
+    <canvas id="game-canvas"></canvas>
+  </body>
+  <script defer>
+    let idk = () => {
+      document.querySelector("button").remove();
+      let script = document.createElement("script");
+      script.type = "module";
+      script.innerHTML = `
+        import init from './rustsweeper.js'
+        init()
+      `;
+      document.documentElement.appendChild(script);
+    }
   </script>
+  <!-- <script type="module">
+    import init from './rustsweeper.js'
+    init()
+  </script> -->
 </html>

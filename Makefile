@@ -10,7 +10,7 @@ clean:
 
 web-release:
 	cargo build --profile wasm-release --target wasm32-unknown-unknown -F release
-	wasm-bindgen --no-typescript --out-dir web --out-name wasm --target web target/wasm32-unknown-unknown/wasm-release/rustsweeper.wasm
+	~/.cargo/bin/wasm-bindgen --no-typescript --out-dir web --out-name rustsweeper --target web target/wasm32-unknown-unknown/wasm-release/rustsweeper.wasm
 
 deps:
 	rustup target install wasm32-unknown-unknown

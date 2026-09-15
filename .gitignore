@@ -1,4 +1,4 @@
 /target
 rustsweeper
-web/wasm_bg.wasm
-web/wasm.js
+web/rustsweeper_bg.wasm
+web/rustsweeper.js

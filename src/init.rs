@@ -8,8 +8,8 @@ pub fn initialize_tile_entities (tiles: Vec<Vec<TileState>>, commands: &mut Comm
         tile_row.iter().enumerate().for_each(|(j, tilestate)| {
             
             let tile_size_float = game_values.tile_size as f32;
-            let absolute_x = (i as f32) * tile_size_float - (game_values.tile_size * SIZE_X) as f32 / 2.0 + tile_size_float / 2.0;
-            let absolute_y = (j as f32) * tile_size_float - (game_values.tile_size * SIZE_Y) as f32 / 2.0 + tile_size_float / 2.0;
+            let absolute_x = (i as f32) * tile_size_float - (game_values.tile_size * SIZE_X as f32) / 2.0 + tile_size_float / 2.0;
+            let absolute_y = (j as f32) * tile_size_float - (game_values.tile_size * SIZE_Y as f32) / 2.0 + tile_size_float / 2.0;
             let mut tile = Tile {
                 x: i,
                 y: j,
