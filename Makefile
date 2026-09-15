@@ -7,6 +7,9 @@ release:
 
 clean:
 	cargo clean
+	rm web/rustsweeper.js
+	rm web/rustsweeper_bg.wasm
+	rm rustsweeper
 
 web-release:
 	cargo build --profile wasm-release --target wasm32-unknown-unknown -F release
